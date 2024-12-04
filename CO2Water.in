@@ -1,0 +1,60 @@
+
+units	real
+dimension	3
+boundary p p p  
+atom_style	full  
+
+read_data	CO2Waterdatafile.txt
+
+pair_style lj/cut/tip4p/long 1 2 1 1 0.1546 12 12    
+kspace_style	pppm/tip4p 1.0e-4
+pair_coeff 1 1 0.1852 3.1589                
+pair_coeff 2 2 0.0 1.0
+pair_coeff 3 3 0.0536 2.8               
+pair_coeff 4 4 0.157 3.05
+pair_modify mix arithmetic
+
+group water type 1 2 
+group co2 type 3 4
+
+bond_style	harmonic
+bond_coeff 1 540.76 0.9572  
+bond_coeff 2 1283.38 1.16 
+
+angle_style	harmonic   
+angle_coeff 1 87.9 104.52
+angle_coeff 2 147.7 180  
+         
+dihedral_style	none
+improper_style	none
+                         
+neighbor 2.0 bin                             
+neigh_modify delay 0 every 1 check yes
+
+velocity all create ${TK} 12345 dist uniform           
+fix 1 water shake 0.0001 100 0 b 1 a 1
+fix 2 all nvt temp ${TK} ${TK} 100
+
+timestep 1.0  
+                     
+run 9000 
+                          
+reset_timestep 0        
+
+variable P equal press
+variable D equal density
+variable T equal temp
+
+fix PressAve all ave/time 60 150 9000 v_P  file pave.out
+fix DensAve all ave/time 60 150 9000 v_D file denave.out
+fix TempAve all ave/time 60 150 9000 v_T file tempave.out
+
+thermo_style custom step temp press epair etotal density lx ly lz           
+thermo 60 
+
+dump myDump1 all atom 60 dump.lammpstrj
+dump myDump20 all custom 60 all.xyz id mol type z 
+
+restart 9000 1.restart 
+                   
+run 9000
